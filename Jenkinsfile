@@ -1,6 +1,13 @@
 pipeline{
     agent any 
     stages{
+        stage('checkout'){
+            steps{
+                echo 'Checking out..'
+                //checkout code from git repository
+                git 'https://github.com/ahmedabdelrahman-del/jenkines_demo'
+        }
+        }
         stage('build'){
             steps{
                 echo 'Building..'
