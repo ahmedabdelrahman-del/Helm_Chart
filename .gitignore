@@ -1,0 +1,22 @@
+node_modules
+npm-debug.log
+.env
+.git
+.vscode
+.idea
+
+# Service directories
+api-gateway/node_modules
+user-service/vendor
+product-service/__pycache__
+product-service/.venv
+order-service/node_modules
+
+# Build artifacts
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Docker
+.dockerignore

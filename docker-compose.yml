@@ -1,0 +1,157 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Databases
+  postgres-users:
+    image: postgres:15-alpine
+    container_name: postgres-users
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - users-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  postgres-products:
+    image: postgres:15-alpine
+    container_name: postgres-products
+    environment:
+      POSTGRES_DB: products_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - products-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  postgres-orders:
+    image: postgres:15-alpine
+    container_name: postgres-orders
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - orders-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # User Service
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    environment:
+      PORT: 4001
+      DB_HOST: postgres-users
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: users_db
+      JWT_SECRET: your-secret-key-change-in-production
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # Product Service
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    environment:
+      PORT: 4002
+      DB_HOST: postgres-products
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: products_db
+      DEBUG: "False"
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres-products:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # Order Service
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    environment:
+      PORT: 4003
+      DB_HOST: postgres-orders
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: orders_db
+      USER_SERVICE_URL: http://user-service:4001
+      PRODUCT_SERVICE_URL: http://product-service:4002
+    ports:
+      - "4003:4003"
+    depends_on:
+      postgres-orders:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    environment:
+      PORT: 3000
+      USER_SERVICE_URL: http://user-service:4001
+      PRODUCT_SERVICE_URL: http://product-service:4002
+      ORDER_SERVICE_URL: http://order-service:4003
+      JWT_SECRET: your-secret-key-change-in-production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+networks:
+  microservices-network:
+    driver: bridge
+
+volumes:
+  users-data:
+  products-data:
+  orders-data:
