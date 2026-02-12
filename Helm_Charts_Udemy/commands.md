@@ -9,4 +9,7 @@
 9) kubectl expose deploy my-wordpress --name my-wordpress-np --type NodePort 
 service/my-wordpress-np exposed
 10) minikube service my-wordpress-np
+11) Helm dependceny list
+12) Helm dependceny update
+13) Helm dependceny build
 #########upgrade-helm-releases################
